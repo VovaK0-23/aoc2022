@@ -1,5 +1,5 @@
-# [Advent of Code 2022 Day 1] (https://adventofcode.com/2022/day/1) 
-## Solution in [Bash] (https://www.gnu.org/software/bash/)
+# [Advent of Code 2022 Day 1](https://adventofcode.com/2022/day/1) 
+## Solution in [Bash](https://www.gnu.org/software/bash/)
 
 ## Expected Result
 

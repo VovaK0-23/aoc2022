@@ -1,4 +1,4 @@
-### [Advent of Code 2022] (https://adventofcode.com/2022/) solutions [VovaK0-23] (https://github.com/VovaK0-23/) 
+### [Advent of Code 2022](https://adventofcode.com/2022/) solutions [VovaK0-23](https://github.com/VovaK0-23/) 
 
 Solving AOC 2022 in different languge every day.
     
