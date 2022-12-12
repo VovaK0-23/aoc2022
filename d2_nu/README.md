@@ -1,6 +1,13 @@
 # [Advent of Code 2022 Day 2](https://adventofcode.com/2022/day/2) 
 ## Solution in [Nushell language](https://www.nushell.sh/)
 
+## Tested on 
+
+```console
+$ nu --version
+0.72.0
+```
+
 ## Expected Result
 
 ```console
