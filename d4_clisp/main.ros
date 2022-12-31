@@ -1,0 +1,50 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+(progn ;;init forms
+  (ros:ensure-asdf) #+quicklisp(ql:quickload '()
+                                             :silent t))
+
+(defpackage :ros.script.help.3881471195 (:use :cl))
+(in-package :ros.script.help.3881471195)
+(ql:quickload :cl-ppcre)
+(ql:quickload :cl-interval)
+
+(defun split-list-by-delimiter (delimiter list)
+  (mapcar (lambda (string) (cl-ppcre:split delimiter string)) list))
+
+(defun parse-range-string (range-string)
+  "Parse a string of the form 'X-Y' as a list of integers representing a range."
+  (let ((start-string (subseq range-string 0 (position #\- range-string)))
+        (end-string (subseq range-string (1+ (position #\- range-string)))))
+    (loop for i from (parse-integer start-string) to (parse-integer end-string)
+          collect i)))
+
+(defun file-to-list-of-strings (filename)
+  (with-open-file (stream filename)
+    (loop for line = (read-line stream nil)
+          while line
+          collect line)))
+
+(defun count-overlapping-pairs1 (mlist)
+  "Count the number of pairs in which one range fully contains the other."
+  (loop for pair in (split-list-by-delimiter "\\," mlist)
+        for range1 = (parse-range-string (second pair))
+        for range2 = (parse-range-string (first pair))
+        count (or (subsetp range1 range2)
+                  (subsetp range2 range1))))
+
+(defun count-overlapping-pairs2 (mlist)
+  "Count the number of pairs in which the ranges overlap."
+  (loop for pair in (split-list-by-delimiter "\\," mlist)
+        for range1 = (parse-range-string (second pair))
+        for range2 = (parse-range-string (first pair))
+        count (not (null (intersection range1 range2)))))
+
+(defun main (&rest argv)
+  (declare (ignorable argv))
+    (format t "Part 1: ~d ~&" (count-overlapping-pairs1(file-to-list-of-strings (car argv))))
+    (format t "Part 2: ~d ~&" (count-overlapping-pairs2(file-to-list-of-strings (car argv))))
+  )
