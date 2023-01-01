@@ -1,2 +1,6 @@
-
+*.hi
+*.o
+d3_haskell/hie.yaml
+d3_haskell/Main
 d4_clisp/main
+d5-c/main
