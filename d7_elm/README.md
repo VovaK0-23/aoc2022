@@ -21,3 +21,6 @@ Part 2: 1498966
 - `$ elm make src/Main.elm --optimize`
 - `iexplorer index.html`
 - also you can use `$ elm reactor`
+
+## Super quick start
+[CLICK](https://vovak0-23.github.io/aoc2022/d7_elm/d7.html)
