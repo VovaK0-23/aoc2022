@@ -1,8 +1,11 @@
 *.hi
 *.o
+*.cmi
+*.cmo
 d3_haskell/hie.yaml
 d3_haskell/Main
 d4_clisp/main
 d5-c/main
 d6_rust/main
 d7_elm/elm-stuff/*
+d8_ocaml/main
