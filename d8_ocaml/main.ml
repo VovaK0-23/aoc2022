@@ -2,6 +2,9 @@ module Solution = struct
   open Array
   type direction = Up | Down | Left | Right
 
+  (* iter_grid takes a 2D grid and a function, and applies the function
+     to every cell in the grid by going through every column then every row.
+  *)
   let iter_grid grid fn =
     let rows = length grid in
     let cols = length grid.(0) in
@@ -11,12 +14,20 @@ module Solution = struct
       done
     done
 
+  (* look takes a direction, a 2D grid, a row, and a column, and returns a count of
+     the number of cells visible in the given direction, and a boolean indicating
+     if the cell itself is visible.
+  *)
   let look dir grid row col =
     let rows = length grid in
     let cols = length grid.(0) in
     let count = ref 0 in
     let visible = ref true in
 
+    (* loop is a helper function for look that iterates through the grid in a
+       given direction and increments the count for every cell with a lower value,
+       until it finds blocking tree or edge.
+    *)
     let loop start limit inc comparison =
       let i = ref start in
       while !i <> limit && !visible do
@@ -35,9 +46,13 @@ module Solution = struct
     | Left -> loop row 0 (-1) (fun x -> grid.(col).(!x))
     | Right -> loop row (rows - 1) 1 (fun x -> grid.(col).(!x))
 
+  (* count_visible_trees takes a 2D grid and returns the number of cells
+     in the grid that are visible in at least one direction.
+  *)
   let count_visible_trees grid =
     let count_visible = ref 0 in
     iter_grid grid (fun (row, col) ->
+        (* If the cell is visible from at least one direction, increment the counter *)
         if
           snd (look Up grid row col)
           || snd (look Down grid row col)
@@ -46,6 +61,10 @@ module Solution = struct
         then incr count_visible);
     !count_visible
 
+  (* count_scenic_score takes a 2D grid and returns the maximum scenic score
+     of any cell in the grid. The scenic score of a cell is the product of
+     the number of cells visible in each direction.
+  *)
   let count_scenic_score grid =
     let max_scenic_score = ref 0 in
     iter_grid grid (fun (row, col) ->
@@ -72,6 +91,11 @@ module Solution = struct
 end
 
 module File = struct
+  (* read function reads the input from a file with the given filename.
+   * It returns the contents of the file as a 2D integer array where each row is represented as an array of integers.
+   * The values of the integers are obtained by subtracting the ASCII code of '0' from the ASCII code of the character.
+   * This is done so that the characters are converted to their numerical equivalent.
+   *)
   let read filename =
     let to_int_array string =
       Array.init (String.length string) (fun i ->
@@ -86,6 +110,10 @@ module File = struct
         close_in input_channel;
         acc
     in
+    (* the input from the file is reversed before being converted to an array.
+     * This is done so that the contents of the file are stored in the array from the top to bottom order,
+     * as it was in the file.
+     *)
     Array.of_list (List.rev (read_lines []))
 end
 
