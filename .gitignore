@@ -3,12 +3,8 @@
 *.cmi
 *.cmo
 sample.txt
+Main
+main
 d03_haskell/hie.yaml
-d03_haskell/Main
-d04_clisp/main
-d05_c/main
-d06_rust/main
 d07_elm/elm-stuff/*
-d08_ocaml/main
 d09_pascal/ptop.conf
-d09_pascal/main
