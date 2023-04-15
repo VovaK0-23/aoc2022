@@ -14,7 +14,6 @@ to generate this file without the comments in this block.
 , dependencies =
   [ "arrays"
   , "console"
-  , "debug"
   , "effect"
   , "either"
   , "exceptions"
@@ -28,7 +27,6 @@ to generate this file without the comments in this block.
   , "prelude"
   , "result"
   , "strings"
-  , "strings-extra"
   , "stringutils"
   , "tuples"
   ]
