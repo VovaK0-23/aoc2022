@@ -15,32 +15,6 @@ defmodule Main do
     end
   end
 
-  defmodule Graph do
-    @type t :: %Graph{
-            edges: [{integer, integer}],
-            nodes: [Node.t()]
-          }
-    defstruct [:nodes, :edges]
-
-    @spec new([Node.t()], {integer, integer}) :: Graph.t()
-    def new(nodes, edges) do
-      edges = Enum.filter(edges, &(&1 != nil))
-      %Graph{nodes: nodes, edges: edges}
-    end
-
-    @spec add_edge(Node.t(), Node.t()) :: {Node.t(), Node.t()}
-    def add_edge(node1, node2) do
-      node1 = add_neighbor(node1, node2.id)
-      node2 = add_neighbor(node2, node1.id)
-      {node1, node2}
-    end
-
-    defp add_neighbor(node, neighbor_id) do
-      neighbors = Enum.filter(node.neighbors, &(&1 == neighbor_id))
-      %Node{node | neighbors: [neighbor_id | neighbors]}
-    end
-  end
-
   @spec main :: :ok
   def main do
     args = System.argv()
@@ -65,7 +39,7 @@ defmodule Main do
   def parse(lines) do
     Enum.with_index(lines, fn line, row ->
       Enum.with_index(String.to_charlist(line), fn letter, col ->
-        id = col + row * String.length(line)
+        id = 1 + col + row * String.length(line)
 
         height =
           case letter do
@@ -98,18 +72,38 @@ defmodule Main do
 
     nodes = Enum.flat_map(nodes2d, & &1)
 
+    IO.puts(row_length)
+
     nodes =
       Enum.reduce(nodes, nodes, fn node, nodes ->
         ids =
-          [row_length + node.id, node.id - row_length, node.id - 1, node.id + 1]
-          |> Enum.filter(&(&1 >= 0 and &1 < nodes_length))
-          |> Enum.filter(&(node.height + 1 >= Enum.at(nodes, &1).height))
+          if rem(node.id, row_length) == 0 do
+            IO.puts("right edge")
+            [row_length + node.id, node.id - row_length, node.id - 1]
+          else
+            if rem(node.id - 1, row_length) == 0 do
+              IO.puts("left edge")
+              [row_length + node.id, node.id - row_length, node.id + 1]
+            else
+              [row_length + node.id, node.id - row_length, node.id - 1, node.id + 1]
+            end
+          end
 
-        List.replace_at(nodes, node.id, %Node{node | neighbors: ids})
+        IO.puts(Enum.join(ids, " "))
+
+        ids =
+          ids
+          |> Enum.filter(&(&1 >= 1 and &1 <= nodes_length))
+
+        IO.puts(Enum.join(ids, " "))
+
+        ids = ids |> Enum.filter(&(node.height + 1 >= Enum.at(nodes, &1 - 1).height))
+
+        List.replace_at(nodes, node.id - 1, %Node{node | neighbors: ids})
       end)
 
     IO.inspect(lines)
-    IO.inspect(length(bfs(Enum.find(nodes, & &1.start), nodes)))
+    IO.inspect(length(bfs(Enum.find(nodes, & &1.start), nodes)) - 1)
   end
 
   @spec alphabet_to_number(integer) :: integer
@@ -125,32 +119,72 @@ defmodule Main do
   end
 
   def bfs_iteration(acc) do
-    {current_node, queue} = List.pop_at(acc.queue, 0)
-    acc = %{acc | queue: queue}
-
-    if current_node.final do
-      backtrack(%{path: [current_node], current_node: current_node, parents: acc.parents})
+    if Enum.empty?(acc.queue) do
+      nil
     else
-      acc = %{acc | visited: MapSet.put(acc.visited, current_node.id)}
+      {current_node, queue} = List.pop_at(acc.queue, 0)
+      acc = %{acc | queue: queue}
 
-      acc =
-        Enum.reduce(current_node.neighbors, acc, fn neighbor_id, acc ->
-          if MapSet.member?(acc.visited, neighbor_id) do
-            acc
-          else
-            neighbor = Enum.at(acc.nodes, neighbor_id)
-
-            %{
-              acc
-              | queue: acc.queue ++ [neighbor],
-                parents: Map.put(acc.parents, neighbor, current_node)
-            }
-          end
-        end)
-
-      if Enum.empty?(acc.queue) do
-        nil
+      if current_node.final do
+        IO.puts("yey!")
+        backtrack(%{path: [current_node], current_node: current_node, parents: acc.parents})
       else
+        acc =
+          if !MapSet.member?(acc.visited, current_node.id) do
+            acc = %{acc | visited: MapSet.put(acc.visited, current_node.id)}
+
+            row_length = 163
+
+            x =
+              Enum.join(
+                Enum.map(acc.nodes, fn node ->
+                  x =
+                    if node.final do
+                      "*"
+                    else
+                      if node.start do
+                        "@"
+                      else
+                        if MapSet.member?(acc.visited, node.id) do
+                          "!"
+                        else
+                          "."
+                        end
+                      end
+                    end
+
+                  x =
+                    if rem(node.id, row_length) == 0 do
+                      x <> "\n"
+                    else
+                      x
+                    end
+
+                  x
+                end),
+                ""
+              )
+
+            IO.puts(IO.ANSI.clear())
+            IO.puts(x)
+
+            Enum.reduce(current_node.neighbors, acc, fn neighbor_id, acc ->
+              if MapSet.member?(acc.visited, neighbor_id) do
+                acc
+              else
+                neighbor = Enum.at(acc.nodes, neighbor_id - 1)
+
+                %{
+                  acc
+                  | queue: acc.queue ++ [neighbor],
+                    parents: Map.put(acc.parents, neighbor, current_node)
+                }
+              end
+            end)
+          else
+            acc
+          end
+
         bfs_iteration(acc)
       end
     end
