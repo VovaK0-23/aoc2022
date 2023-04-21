@@ -14,8 +14,8 @@ Elixir 1.14.4 (compiled with Erlang/OTP 25)
 
 ```console
 Input file: input.txt
-Part 1: 112815
-Part 2: 25738411485
+Part 1: 534
+Part 2: 525
 ```
 
 ## Quick Start
