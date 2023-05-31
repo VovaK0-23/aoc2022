@@ -1,0 +1,12 @@
+name: main
+version: 0.1.0
+
+authors:
+  - VovaK23 <451585@gmail.com>
+
+targets:
+  main: src/main.cr
+
+crystal: 1.8.2
+
+license: MIT
