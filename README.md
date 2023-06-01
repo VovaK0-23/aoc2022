@@ -1,6 +1,8 @@
 ### [Advent of Code 2022](https://adventofcode.com/2022/) solutions ([VovaK0-23](https://github.com/VovaK0-23/))
 
 Solving AOC 2022 in different language every day.
+
+Feedback is welcome! Keep in mind that I am new to writing code in some of these languages, so any guidance or suggestions for improvement are appreciated. Thank you!
     
 ## Environment
 
