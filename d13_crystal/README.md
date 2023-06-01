@@ -1,27 +1,25 @@
-# main
+# [Advent of Code 2022 Day 13](https://adventofcode.com/2022/day/13) 
+## Solution in [Crystal](https://crystal-lang.org/)
 
-TODO: Write a description here
+## Tested on 
 
-## Installation
+```console
+$ crystal -v
+Crystal 1.8.2 [7aa5cdd86] (2023-05-09)
 
-TODO: Write installation instructions here
+LLVM: 15.0.7
+Default target: x86_64-unknown-linux-gnu
+```
 
-## Usage
+## Expected Result
 
-TODO: Write usage instructions here
+```console
+Input file: input.txt
+Part 1: 5588
+Part 2: 23958
+```
 
-## Development
-
-TODO: Write development instructions here
-
-## Contributing
-
-1. Fork it (<https://github.com/your-github-user/main/fork>)
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
-
-## Contributors
-
-- [VovaK23](https://github.com/your-github-user) - creator and maintainer
+## Quick Start
+- install [crystal](https://crystal-lang.org/install/) and make sure `crystal` is availible in `$PATH`
+  - if using asdf `asdf install`
+- `$ make`
