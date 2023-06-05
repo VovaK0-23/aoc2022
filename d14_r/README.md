@@ -12,6 +12,9 @@ Platform: x86_64-redhat-linux-gnu (64-bit)
 
 ## Expected Result
 
+![Part 1](image_001.gif)
+![Part 2](image_002.gif)
+
 ```console
 Input file: input.txt
 Part 1: 832
