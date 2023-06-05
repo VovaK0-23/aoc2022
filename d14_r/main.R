@@ -6,15 +6,9 @@ if (!require(magick)) install.packages("magick")
 
 library(magick)
 
-read_file_lines <- function(args) {
-  if (length(args) == 0) {
-    print("Usage: Rscript main.R <input-path>")
-    return(NULL)
-  }
-  file_path <- args[1]
+read_file_lines <- function(file_path) {
   if (!file.exists(file_path)) {
-    print(paste("File", file_path, "does not exist."))
-    return(NULL)
+    stop(paste("File", file_path, "does not exist."))
   }
   return(readLines(file_path))
 }
@@ -78,18 +72,18 @@ create_cave_matrix <- function(slices) {
   return(cave_matrix)
 }
 
-filename_generator <- function() {
+filename_generator <- function(ext) {
   # Global counter variable
   counter <- 1
   # Function to generate a new filename with counter
-  return(function() {
-    filename <- paste0("image_", sprintf("%03d", counter), ".png")
+  return(\() {
+    filename <- paste0("image_", sprintf("%03d", counter), ".", ext)
     counter <<- counter + 1
     return(filename)
   })
 }
 
-generate_filename <- filename_generator()
+generate_filename <- filename_generator("png")
 
 visualize_cave <- function(cave_matrix, imgs) {
   nrow <- nrow(cave_matrix)
@@ -139,76 +133,186 @@ visualize_cave <- function(cave_matrix, imgs) {
   return(append(imgs, image))
 }
 
-main <- function(fn) {
-  args <- commandArgs(trailingOnly = TRUE)
-  lines <- read_file_lines(args)
-  slices <- parse_slices(lines)
-  cave_matrix <- create_cave_matrix(slices)
-  cave_matrix["0", "500"] <- "+"
+generate_gif_filename <- filename_generator("gif")
+prepare_and_clean <- function(fn, cave_matrix, no_gif) {
+  if (no_gif) {
+    fn(cave_matrix, no_gif)
+  } else {
+    build_path <- "build"
+    # Create the build folder if it doesn't exist
+    if (!file.exists(build_path)) {
+      dir.create(build_path)
+    }
+    # Move into the build folder
+    setwd(build_path)
 
-  build_path <- "build"
-  # Create the build folder if it doesn't exist
-  if (!file.exists(build_path)) {
-    dir.create(build_path)
+    # execute main part
+    animation <- fn(cave_matrix, no_gif)
+
+    # Move into the parent folder
+    setwd("..")
+    image_write(animation, generate_gif_filename())
+    unlink(build_path, recursive = TRUE)
   }
-  # Move into the build folder
-  setwd(build_path)
-
-  # execute main part
-  animation <- fn(cave_matrix)
-
-  # Move into the parent folder
-  setwd("..")
-  image_write(animation, "result.gif")
-  unlink(build_path, recursive = TRUE)
 }
 
-part1 <- function(cave_matrix) {
-  imgs <- c()
-  imgs <- visualize_cave(cave_matrix, imgs)
-  # Get the names of the first and last column
-  first_col <- as.integer(colnames(cave_matrix)[1])
-  last_col <- as.integer(colnames(cave_matrix)[ncol(cave_matrix)])
-  last_row <- as.integer(rownames(cave_matrix)[nrow(cave_matrix)])
+simulate_sand <- function(cave_matrix, current, sand_units, fn) {
+  # Check the cell below the current position
+  if (cave_matrix[current$row + 1, current$col] == ".") {
+    # Move the sand down by updating the current position
+    cave_matrix[current$row, current$col] <- "."
+    current$row <- current$row + 1
+    cave_matrix[current$row, current$col] <- "o"
+  } else if (cave_matrix[current$row + 1, current$col - 1] == ".") {
+    cave_matrix[current$row, current$col] <- "."
+    current$row <- current$row + 1
+    current$col <- current$col - 1
+    cave_matrix[current$row, current$col] <- "o"
+  } else if (cave_matrix[current$row + 1, current$col + 1] == ".") {
+    cave_matrix[current$row, current$col] <- "."
+    current$row <- current$row + 1
+    current$col <- current$col + 1
+    cave_matrix[current$row, current$col] <- "o"
+  } else {
+    # Sand cannot fall further, so back to source
+    current <- source(cave_matrix)
+    cave_matrix[current$row, current$col] <- "+"
+    sand_units <- sand_units + 1
+    fn(cave_matrix)
+  }
 
-  cur_position <- c("0", "500")
+  return(list(
+    cave_matrix = cave_matrix,
+    current = current,
+    sand_units = sand_units
+  ))
+}
+
+is_end_part2 <- function(cave_matrix, current) {
+  source_ <- source(cave_matrix)
+  if (current$row == source_$row && current$col == source_$col) {
+    if (cave_matrix[current$row + 1, current$col] == "o" &&
+        cave_matrix[current$row + 1, current$col - 1] == "o" &&
+        cave_matrix[current$row + 1, current$col + 1] == "o"
+        ) {
+      return(TRUE)
+    }
+  }
+  return(FALSE)
+}
+
+part1 <- function(cave_matrix, no_gif) {
+  sand_units <- 0
+  imgs <- c()
+  if (!no_gif) {
+    imgs <- visualize_cave(cave_matrix, imgs)
+  }
+
+  current <- source(cave_matrix)
   while (TRUE) {
-    if (cur_position[1] == last_row ||
-      cur_position[2] == first_col ||
-      cur_position[2] == last_col) {
+    if (current$row == nrow(cave_matrix) ||
+      current$col == ncol(cave_matrix) ||
+      current$col == 1) {
       break # Exit the loop when sand reaches the bottom
     }
 
-    # Check the cell below the current position
-    cell_below <- cave_matrix[as.character(as.integer(cur_position[1]) + 1), cur_position[2]]
-    cell_below_l <- cave_matrix[as.character(as.integer(cur_position[1]) + 1), as.character(as.integer(cur_position[2]) - 1)]
-    cell_below_r <- cave_matrix[as.character(as.integer(cur_position[1]) + 1), as.character(as.integer(cur_position[2]) + 1)]
-    if (cell_below == ".") {
-      # Move the sand down by updating the current position
-      cave_matrix[cur_position[1], cur_position[2]] <- "."
-      cur_position[1] <- as.character(as.integer(cur_position[1]) + 1)
-      cave_matrix[cur_position[1], cur_position[2]] <- "o"
-    } else if (cell_below_l == ".") {
-      # Move the sand down by updating the current position
-      cave_matrix[cur_position[1], cur_position[2]] <- "."
-      cur_position[1] <- as.character(as.integer(cur_position[1]) + 1)
-      cur_position[2] <- as.character(as.integer(cur_position[2]) - 1)
-      cave_matrix[cur_position[1], cur_position[2]] <- "o"
-    } else if (cell_below_r == ".") {
-      # Move the sand down by updating the current position
-      cave_matrix[cur_position[1], cur_position[2]] <- "."
-      cur_position[1] <- as.character(as.integer(cur_position[1]) + 1)
-      cur_position[2] <- as.character(as.integer(cur_position[2]) + 1)
-      cave_matrix[cur_position[1], cur_position[2]] <- "o"
-    } else {
-      # Sand cannot fall further, so back to source
-      cur_position <- c("0", "500")
-      cave_matrix[cur_position[1], cur_position[2]] <- "+"
-      # Visualize the updated path matrix
-      imgs <- visualize_cave(cave_matrix, imgs)
-    }
+    res <- simulate_sand(
+      cave_matrix, current, sand_units,
+      \(cave_matrix) {
+        if (!no_gif) {
+          # Visualize the updated cave matrix
+          imgs <<- visualize_cave(cave_matrix, imgs)
+        }
+      }
+    )
+    cave_matrix <- res$cave_matrix
+    current <- res$current
+    sand_units <- res$sand_units
   }
-  return(image_animate(imgs, fps = 20, optimize = TRUE))
+
+  cat(paste("Part 1:", sand_units, "\n"))
+  if (!no_gif) {
+    return(image_animate(imgs, fps = 25, optimize = TRUE))
+  }
 }
 
-main(part1)
+source <- function(cave_matrix) {
+  list(
+    row = which(rownames(cave_matrix) == "0"),
+    col = which(colnames(cave_matrix) == "500")
+  )
+}
+
+part2 <- function(cave_matrix, no_gif) {
+  sand_units <- 0
+  imgs <- c()
+  if (!no_gif) {
+    imgs <- visualize_cave(cave_matrix, imgs)
+  }
+
+  last_row_name <- as.integer(rownames(cave_matrix)[nrow(cave_matrix)])
+  cave_matrix <- rbind(
+    cave_matrix,
+    matrix(".", nrow = 1, ncol = ncol(cave_matrix))
+  )
+  rownames(cave_matrix)[nrow(cave_matrix)] <- last_row_name + 1
+  cave_matrix <- rbind(
+    cave_matrix,
+    matrix("#", nrow = 1, ncol = ncol(cave_matrix))
+  )
+  rownames(cave_matrix)[nrow(cave_matrix)] <- last_row_name + 2
+
+  current <- source(cave_matrix)
+  while (TRUE) {
+    if (current$col == 2) {
+      cave_matrix <- cbind(rep(".", times = nrow(cave_matrix)), cave_matrix)
+      cave_matrix[nrow(cave_matrix), 1] <- "#"
+      colnames(cave_matrix)[1] <-
+        as.integer(colnames(cave_matrix)[2]) - 1
+      current$col <- current$col + 1
+    }
+
+    if (current$col == ncol(cave_matrix) - 1) {
+      cave_matrix <- cbind(cave_matrix, rep(".", times = nrow(cave_matrix)))
+      cave_matrix[nrow(cave_matrix), ncol(cave_matrix)] <- "#"
+      colnames(cave_matrix)[ncol(cave_matrix)] <-
+        as.integer(colnames(cave_matrix)[ncol(cave_matrix) - 1]) + 1
+    }
+
+    if (is_end_part2(cave_matrix, current)) {
+      break
+    }
+
+    res <- simulate_sand(
+      cave_matrix, current, sand_units,
+      \(cave_matrix) {
+        if (!no_gif) {
+          # Visualize the updated cave matrix
+          imgs <<- visualize_cave(cave_matrix, imgs)
+        }
+      }
+    )
+    cave_matrix <- res$cave_matrix
+    current <- res$current
+    sand_units <- res$sand_units
+  }
+
+  cat(paste("Part 2:", sand_units + 1, "\n"))
+  if (!no_gif) {
+    return(image_animate(imgs, fps = 25, optimize = TRUE))
+  }
+}
+
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) == 0) {
+  stop("Usage: Rscript main.R <input-path> --no-gif")
+}
+file_path <- args[1]
+no_gif <- "--no-gif" %in% args
+lines <- read_file_lines(file_path)
+slices <- parse_slices(lines)
+cave_matrix <- create_cave_matrix(slices)
+cave_matrix["0", "500"] <- "+"
+
+prepare_and_clean(part1, cave_matrix, no_gif)
+prepare_and_clean(part2, cave_matrix, no_gif)
