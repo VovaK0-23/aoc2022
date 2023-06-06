@@ -24,7 +24,7 @@ Part 2: 27601
 ## Quick Start
 - install [R](https://cran.r-project.org/mirrors.html) and make sure `Rscript` is availible in `$PATH`
 - `$ make`
-  - You can run `$ make gif` to create a visualizatio
+  - You can run `$ make gif` to create a visualization
 
 ### Important
 Current solution takes approx 3 min without visualization, 7 with visualization

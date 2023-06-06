@@ -7,7 +7,7 @@
 main: main.R
 	Rscript main.R input.txt --no-gif
 
-gif: main.R
+gif:
 	Rscript main.R input.txt
 
 .PHONY: gif
