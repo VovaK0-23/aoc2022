@@ -27,4 +27,4 @@ Part 2: 27601
   - You can run `$ make gif` to create a visualization
 
 ### Important
-Current solution takes approx 3 min without visualization, 7 with visualization
+Current solution takes approx 2 min without visualization, 6 min with
