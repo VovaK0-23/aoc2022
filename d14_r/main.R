@@ -8,28 +8,28 @@ library(magick)
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
-  stop("Usage: Rscript main.R <input-path> --no-gif")
+  stop("Usage: Rscript main.R <input-path> --gif")
 }
 file_path <- args[1]
-no_gif <- "--no-gif" %in% args
+gif <- "--gif" %in% args
 lines <- read_file_lines(file_path)
 slices <- parse_slices(lines)
 cave_matrix <- create_cave_matrix(slices)
 
-prepare_and_clean(part1, cave_matrix, no_gif)
-prepare_and_clean(part2, cave_matrix, no_gif)
+prepare_and_clean(part1, cave_matrix, gif)
+prepare_and_clean(part2, cave_matrix, gif)
 
-part1 <- function(cave_matrix, no_gif) {
+part1 <- function(cave_matrix, gif) {
   sand_units <- 0
   imgs <- c()
-  if (!no_gif) imgs <- visualize_cave(cave_matrix, imgs)
+  if (gif) imgs <- visualize_cave(cave_matrix, imgs)
 
   current <- source(cave_matrix)
   while (current$row < nrow(cave_matrix) &&
     current$col < ncol(cave_matrix) &&
     current$col > 1) {
     res <- simulate_sand(cave_matrix, current, sand_units, \(cave_matrix) {
-      if (!no_gif) imgs <<- visualize_cave(cave_matrix, imgs)
+      if (gif) imgs <<- visualize_cave(cave_matrix, imgs)
     })
     cave_matrix <- res$cave_matrix
     current <- res$current
@@ -38,10 +38,10 @@ part1 <- function(cave_matrix, no_gif) {
 
   cat(paste("Part 1:", sand_units, "\n"))
 
-  if (!no_gif) image_animate(imgs, fps = 25, optimize = TRUE)
+  if (gif) image_animate(imgs, fps = 25, optimize = TRUE)
 }
 
-part2 <- function(cave_matrix, no_gif) {
+part2 <- function(cave_matrix, gif) {
   is_end <- \(cave_matrix, current) {
     source_ <- source(cave_matrix)
     current$row == source_$row && current$col == source_$col && all(c(
@@ -53,7 +53,7 @@ part2 <- function(cave_matrix, no_gif) {
 
   sand_units <- 1
   imgs <- c()
-  if (!no_gif) imgs <- visualize_cave(cave_matrix, imgs)
+  if (gif) imgs <- visualize_cave(cave_matrix, imgs)
 
   # Add two rows to matrix
   last_row_name <- as.integer(tail(rownames(cave_matrix), n = 1))
@@ -87,8 +87,9 @@ part2 <- function(cave_matrix, no_gif) {
     }
 
     res <- simulate_sand(cave_matrix, current, sand_units, \(cave_matrix) {
-      if (!no_gif && sand_units %% 100 == 0) {
-        imgs <<- visualize_cave(cave_matrix, imgs)
+      if (gif && sand_units %% 100 == 0) {
+        imgs <<-
+          visualize_cave(cave_matrix, imgs)
       }
     })
     cave_matrix <- res$cave_matrix
@@ -98,7 +99,7 @@ part2 <- function(cave_matrix, no_gif) {
 
   cat(paste("Part 2:", sand_units, "\n"))
 
-  if (!no_gif) image_animate(imgs, fps = 25, optimize = TRUE)
+  if (gif) image_animate(imgs, fps = 25, optimize = TRUE)
 }
 
 simulate_sand <- function(cave_matrix, current, sand_units, callback) {
@@ -258,10 +259,8 @@ read_file_lines <- function(file_path) {
   return(readLines(file_path))
 }
 
-prepare_and_clean <- function(fn, cave_matrix, no_gif) {
-  if (no_gif) {
-    fn(cave_matrix, no_gif)
-  } else {
+prepare_and_clean <- function(fn, cave_matrix, gif) {
+  if (gif) {
     build_path <- "build"
     if (!file.exists(build_path)) {
       dir.create(build_path)
@@ -269,11 +268,13 @@ prepare_and_clean <- function(fn, cave_matrix, no_gif) {
     # Move into the build folder
     setwd(build_path)
     # execute main part
-    animation <- fn(cave_matrix, no_gif)
+    animation <- fn(cave_matrix, gif)
     # Move into the parent folder
     setwd("..")
     image_write(animation, generate_gif_filename())
     unlink(build_path, recursive = TRUE)
+  } else {
+    fn(cave_matrix, gif)
   }
 }
 
