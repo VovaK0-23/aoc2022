@@ -283,13 +283,13 @@ visualize_cave <- function(cave_matrix, imgs) {
             lines(c(j, j + 1), c(nrow - i + 1, nrow - i + 1), col = "black")
           }
         },
-        SOURCE = {
-          # Draw a source
-          points(j, nrow - i + 1, col = "red", pch = "+", cex = 1)
-        },
         SAND = {
           # Draw a sand
           points(j, nrow - i + 1, col = "orange", pch = 24, cex = 0.8)
+        },
+        SOURCE = {
+          # Draw a source
+          points(j, nrow - i + 1, col = "red", pch = "+", cex = 1)
         }
       )
     }
