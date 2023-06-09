@@ -78,7 +78,6 @@ fn part1(sensors: []Sensor, args: [][]const u8, allocator: std.mem.Allocator) !v
     for (ranges.items) |range| {
         count += range.e - range.s;
     }
-
     try stdout.print("Part 1: {d}\n", .{count});
 }
 
@@ -86,26 +85,25 @@ const MAX_COORDINATE_VALUE: i32 = 4000000;
 fn part2(sensors: []Sensor, allocator: std.mem.Allocator) !void {
     var i: i32 = 0;
     var res: i64 = 0;
+    var ranges = std.ArrayList(Range).init(allocator);
+    defer ranges.deinit();
     while (i < MAX_COORDINATE_VALUE) : (i += 1) {
-        {
-            var ranges = std.ArrayList(Range).init(allocator);
-            defer ranges.deinit();
-            for (sensors) |sensor| {
-                if (intersectsRow(sensor, i)) {
-                    const effDist = sensor.distance - abs(sensor.point.y - i);
-                    const start = sensor.point.x - effDist;
-                    const end = sensor.point.x + effDist;
-                    const s = if (start < 0) 0 else start;
-                    const e = if (end > MAX_COORDINATE_VALUE) MAX_COORDINATE_VALUE else end;
-                    try ranges.append(Range{ .s = s, .e = e });
-                }
+        ranges.items.len = 0;
+        for (sensors) |sensor| {
+            if (intersectsRow(sensor, i)) {
+                const effDist = sensor.distance - abs(sensor.point.y - i);
+                const start = sensor.point.x - effDist;
+                const end = sensor.point.x + effDist;
+                const s = if (start < 0) 0 else start;
+                const e = if (end > MAX_COORDINATE_VALUE) MAX_COORDINATE_VALUE else end;
+                try ranges.append(Range{ .s = s, .e = e });
             }
-            try mergeRanges(&ranges, allocator);
+        }
+        try mergeRanges(&ranges, allocator);
 
-            if (ranges.items.len > 1) {
-                res = (ranges.items[0].e + 1) * @intCast(i64,MAX_COORDINATE_VALUE) + i;
-                break;
-            }
+        if (ranges.items.len > 1) {
+            res = (ranges.items[0].e + 1) * @intCast(i64, MAX_COORDINATE_VALUE) + i;
+            break;
         }
     }
     try stdout.print("Part 2: {d}\n", .{res});
@@ -115,7 +113,7 @@ fn mergeRanges(ranges: *ArrayList(Range), allocator: std.mem.Allocator) !void {
     var rangeArray: []Range = ranges.toOwnedSlice();
     defer allocator.free(rangeArray);
 
-    sortRanges(rangeArray);
+    std.sort.sort(Range, rangeArray, {}, compRangeS);
 
     var currentRange = rangeArray[0];
     for (rangeArray[1..]) |range| {
@@ -130,10 +128,6 @@ fn mergeRanges(ranges: *ArrayList(Range), allocator: std.mem.Allocator) !void {
     }
     // Append the last merged range
     try ranges.append(currentRange);
-}
-
-fn sortRanges(ranges: []Range) void {
-    std.sort.sort(Range, ranges, {}, compRangeS);
 }
 
 fn compRangeS(_: void, a: Range, b: Range) bool {
