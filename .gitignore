@@ -5,6 +5,7 @@
 sample.txt
 Main
 main
+.metals
 d03_haskell/hie.yaml
 d07_elm/elm-stuff/*
 d09_pascal/ptop.conf
