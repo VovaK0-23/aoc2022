@@ -4,8 +4,6 @@ const indexOf = std.mem.indexOf;
 const parseInt = std.fmt.parseInt;
 const stdout = std.io.getStdOut().writer();
 
-const RADIX10 = 10; // base or the number of unique digits used to represent numbers
-
 const Sensor = struct {
     point: Point,
     distance: i32,
@@ -21,6 +19,8 @@ const Range = struct {
     e: i32,
 };
 
+const RADIX10 = 10; // base or the number of unique digits used to represent numbers
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -35,16 +35,7 @@ pub fn main() !void {
     }
 
     const filePath = args[1];
-    const file = std.fs.cwd().openFile(filePath, .{ .read = true }) catch |err| {
-        if (err == error.FileNotFound)
-            try stdout.print("File Not Found: {s}\n", .{filePath})
-        else
-            try stdout.print("{s}\n", .{err});
-        std.os.exit(1);
-    };
-    defer file.close();
-
-    var sensors = try parseFile(file, allocator);
+    var sensors = try parseFile(filePath, allocator);
     defer allocator.free(sensors);
 
     try part1(sensors, args, allocator);
@@ -56,7 +47,7 @@ fn part1(sensors: []Sensor, args: [][]const u8, allocator: std.mem.Allocator) !v
         if (err == error.InvalidCharacter)
             try stdout.print("Target row should be a number, got: {s}\n", .{args[2]})
         else
-            try stdout.print("{s}\n", .{err});
+            try stdout.print("{any}\n", .{err});
         std.os.exit(1);
     } else 2000000;
 
@@ -142,8 +133,18 @@ fn intersectsRow(sensor: Sensor, row: i32) bool {
     return (row >= start) and (row <= end);
 }
 
-fn parseFile(file: std.fs.File, allocator: std.mem.Allocator) ![]Sensor {
-    const stream = std.io.bufferedReader(file.reader()).reader();
+fn parseFile(filePath: []const u8, allocator: std.mem.Allocator) ![]Sensor {
+    const file = std.fs.cwd().openFile(filePath, .{ .mode = std.fs.File.OpenMode.read_only }) catch |err| {
+        if (err == error.FileNotFound)
+            try stdout.print("File Not Found: {s}\n", .{filePath})
+        else
+            try stdout.print("{any}\n", .{err});
+        std.os.exit(1);
+    };
+    defer file.close();
+
+    var bufReader = std.io.bufferedReader(file.reader());
+    const stream = bufReader.reader();
     var buf: [1024]u8 = undefined;
     var lineCount: u8 = 0;
     var sensors = ArrayList(Sensor).init(allocator);
@@ -152,7 +153,7 @@ fn parseFile(file: std.fs.File, allocator: std.mem.Allocator) ![]Sensor {
         lineCount += 1;
         const sensor = parseLine(line) catch |err| {
             try stdout.print("Line {d} invalid format: {s}\n", .{ lineCount, line });
-            try stdout.print("Error: {s}\n", .{err});
+            try stdout.print("Error: {any}\n", .{err});
             std.os.exit(1);
         };
         try sensors.append(sensor);
