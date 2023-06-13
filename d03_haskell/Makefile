@@ -1,4 +1,5 @@
 .PHONY: test
+
 test: Main input.txt
 	./Main input.txt
 
