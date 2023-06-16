@@ -13,7 +13,7 @@ Scala code runner version 3.3.0 -- Copyright 2002-2023, LAMP/EPFL
 ```console
 Input file: input.txt
 Part 1: 1728
-Part 2: 
+Part 2: 2304
 ```
 
 ## Quick Start
