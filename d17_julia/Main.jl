@@ -6,10 +6,19 @@ const PADDING = (x = 2, y = 3)
 
 mutable struct Tower
     data::Matrix{Bool}
+    heights::Vector{Union{Int64,Nothing}}  # Store height by column
+    min::Int64
 end
 
 function Tower(width, height)
-    Tower(fill(false, height, width))
+    Tower(fill(false, height, width), [nothing for _ = 1:TOWER_WIDTH], 0)
+end
+
+function update_tower_heights!(tower::Tower)
+    tower.heights = vec([
+        any(tower.data[:, coord[2]]) ? coord[1] : nothing for
+        coord in argmax(tower.data, dims = 1)
+    ])
 end
 
 struct Rocks
@@ -64,29 +73,32 @@ function calculate_tower_height(jets, num_rocks)
     rocks = Rocks(rocks)
 
     tower = Tower(TOWER_WIDTH, 0)
-    bufTower = Tower(TOWER_WIDTH, 0)
     height = 0
     for i = 1:num_rocks
+        if i % 100 == 0
+            println(i)
+        end
         rock_index = mod(i - 1, length(rocks.data)) + 1
         rock = rocks.data[rock_index]
-        height = simulate_rock_falling(rock, jets, tower, bufTower, height)
+        height = simulate_rock_falling(rock, jets, tower, height)
     end
 
     return height
 end
 
-function simulate_rock_falling(rock, jets, tower, bufTower, height)
+function simulate_rock_falling(rock, jets, tower, height)
     rock_nrows = size(rock, 1)
-    nrows = height + PADDING.y + rock_nrows
-    bufTower.data = falses(nrows, TOWER_WIDTH)
+    add_rows = PADDING.y + rock_nrows
+    tower.data = vcat(fill(false, add_rows, TOWER_WIDTH), tower.data)
+    nrows = size(tower.data, 1)
+    bufTower = Tower(TOWER_WIDTH, nrows)
     bufTower.data[1:rock_nrows, :] = rock
-    tower.data = vcat(fill(false, (nrows - height), TOWER_WIDTH), tower.data)
-    new_height = nrows
+    new_height = add_rows + height
 
     shifted = false
     while true
         if shifted
-            if any(bufTower.data[nrows, :])
+            if (nothing in tower.heights && any(bufTower.data[nrows, :]))
                 break
             end
             buf = circshift(bufTower.data, (1, 0))
@@ -119,7 +131,12 @@ function simulate_rock_falling(rock, jets, tower, bufTower, height)
         end
     end
 
-    tower.data = (bufTower.data.|tower.data)[(nrows-new_height+1):nrows, :]
+    tower.data = (bufTower.data .| tower.data)
+    update_tower_heights!(tower)
+    max = nothing in tower.heights ? 0 : maximum(tower.heights)
+    min = minimum(filter(x -> x !== nothing, tower.heights))
+    tower.data = tower.data[min:(max > 0 ? max + 8 : end), :]
+
     return new_height
 end
 
