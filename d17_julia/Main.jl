@@ -1,5 +1,5 @@
 using LinearAlgebra
-using PrettyTables
+using Printf
 
 const TOWER_WIDTH = 7
 const PADDING = (x = 2, y = 3)
@@ -7,18 +7,31 @@ const PADDING = (x = 2, y = 3)
 mutable struct Tower
     data::Matrix{Bool}
     heights::Vector{Union{Int64,Nothing}}  # Store height by column
-    min::Int64
 end
 
-function Tower(width, height)
-    Tower(fill(false, height, width), [nothing for _ = 1:TOWER_WIDTH], 0)
+function Tower(height)
+    Tower(fill(false, height, TOWER_WIDTH), [nothing for _ = 1:TOWER_WIDTH])
 end
 
-function update_tower_heights!(tower::Tower)
-    tower.heights = vec([
-        any(tower.data[:, coord[2]]) ? coord[1] : nothing for
-        coord in argmax(tower.data, dims = 1)
-    ])
+function update_tower!(tower::Tower, matrix::BitMatrix)
+    min = typemax(Int64)
+    max = 0
+    for coord in argmax(matrix, dims = 1)
+        row, col = Tuple(coord)
+        tower.heights[col] = if any(matrix[:, col])
+            if min > row
+                min = row
+            end
+            if max !== nothing && max < row
+                max = row
+            end
+            row
+        else
+            max = nothing
+            nothing
+        end
+    end
+    tower.data = matrix[min:(max !== nothing ? max + 8 : end), :]
 end
 
 struct Rocks
@@ -50,13 +63,17 @@ function next_jet!(jets::Jets)
     jet
 end
 
-
 function main()
     filepath = ARGS[1]
     jets = Jets(read_file(filepath))
     part1 = calculate_tower_height(jets, 2022)
     print("Part 1: ")
-    println(part1)
+    println(@sprintf("%.f", part1))
+
+    jets.index[] = 1
+    part2 = calculate_tower_height(jets, 1000000000000)
+    print("Part 2: ")
+    println(@sprintf("%.f", part2))
 end
 
 function read_file(filepath)
@@ -72,15 +89,45 @@ function calculate_tower_height(jets, num_rocks)
         [["####"], [".#.", "###", ".#."], ["..#", "..#", "###"], fill("#", 4), ["##", "##"]]
     rocks = Rocks(rocks)
 
-    tower = Tower(TOWER_WIDTH, 0)
+    tower_cache = Dict{Tuple,Tuple}()
+    tower = Tower(0)
     height = 0
+
+    remainder = 0
+    divisor = 0
+    cache_height = 0
+
     for i = 1:num_rocks
-        if i % 100 == 0
-            println(i)
-        end
         rock_index = mod(i - 1, length(rocks.data)) + 1
         rock = rocks.data[rock_index]
+
         height = simulate_rock_falling(rock, jets, tower, height)
+
+        cache_key = (tower.data, jets.index[])
+        if cache_key in keys(tower_cache)
+            (remainder, cache_height) = tower_cache[cache_key]
+            divisor = i - remainder
+            break
+        else
+            tower_cache[cache_key] = (i, height)
+        end
+    end
+
+    if cache_height > 0
+        closest_num = num_rocks - (num_rocks % divisor) + remainder
+
+        if closest_num > num_rocks
+            closest_num -= divisor
+        end
+
+        repeats = (closest_num - remainder) / divisor
+        height = (height - cache_height) * repeats + cache_height
+        for i = closest_num+1:num_rocks
+            rock_index = mod(i - 1, length(rocks.data)) + 1
+            rock = rocks.data[rock_index]
+
+            height = simulate_rock_falling(rock, jets, tower, height)
+        end
     end
 
     return height
@@ -91,39 +138,39 @@ function simulate_rock_falling(rock, jets, tower, height)
     add_rows = PADDING.y + rock_nrows
     tower.data = vcat(fill(false, add_rows, TOWER_WIDTH), tower.data)
     nrows = size(tower.data, 1)
-    bufTower = Tower(TOWER_WIDTH, nrows)
-    bufTower.data[1:rock_nrows, :] = rock
+    bufTower = fill(false, nrows, TOWER_WIDTH)
+    bufTower[1:rock_nrows, :] = rock
     new_height = add_rows + height
 
     shifted = false
     while true
         if shifted
-            if (nothing in tower.heights && any(bufTower.data[nrows, :]))
+            if (nothing in tower.heights && any(bufTower[nrows, :]))
                 break
             end
-            buf = circshift(bufTower.data, (1, 0))
+            buf = circshift(bufTower, (1, 0))
             if any(buf .& tower.data)
                 break
             end
             if height < new_height
                 new_height -= 1
             end
-            bufTower.data = buf
+            bufTower = buf
             shifted = false
         else
             jet = next_jet!(jets)
             if jet == '>'
-                if !(true in bufTower.data[:, TOWER_WIDTH])
-                    buf = circshift(bufTower.data, (0, 1))
+                if !(true in bufTower[:, TOWER_WIDTH])
+                    buf = circshift(bufTower, (0, 1))
                     if !any(buf .& tower.data)
-                        bufTower.data = buf
+                        bufTower = buf
                     end
                 end
             else
-                if !(true in bufTower.data[:, 1])
-                    buf = circshift(bufTower.data, (0, -1))
+                if !(true in bufTower[:, 1])
+                    buf = circshift(bufTower, (0, -1))
                     if !any(buf .& tower.data)
-                        bufTower.data = buf
+                        bufTower = buf
                     end
                 end
             end
@@ -131,11 +178,7 @@ function simulate_rock_falling(rock, jets, tower, height)
         end
     end
 
-    tower.data = (bufTower.data .| tower.data)
-    update_tower_heights!(tower)
-    max = nothing in tower.heights ? 0 : maximum(tower.heights)
-    min = minimum(filter(x -> x !== nothing, tower.heights))
-    tower.data = tower.data[min:(max > 0 ? max + 8 : end), :]
+    update_tower!(tower, (bufTower .| tower.data))
 
     return new_height
 end
