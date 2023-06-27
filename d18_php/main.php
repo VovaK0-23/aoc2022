@@ -1,15 +1,9 @@
 <?php
 if (count($argv) > 1) {
   $filepath = $argv[1];
-  $result = parse_file($filepath);
-  $cubes = $result['cubes'];
-  $min = $result['min'];
-  $max = $result['max'];
-  $water_min = array_map(fn($value) => $value - 1, $min);
-  $water_max = array_map(fn($value) => $value + 1, $max);
-
+  [$cubes, $min, $max] = parse_file($filepath);
   part1($cubes);
-  part2($cubes, $water_min, $water_max);
+  part2($cubes, $min, $max);
 } else {
   echo "Usage: php main.php <input-path>\n";
 }
@@ -18,39 +12,35 @@ function parse_file($filepath)
 {
   echo 'Input file: ', $filepath, "\n";
 
+  $lines = file($filepath, FILE_IGNORE_NEW_LINES);
   $cubes = [];
-  $file = fopen($filepath, 'r');
   $min = [PHP_INT_MAX, PHP_INT_MAX, PHP_INT_MAX];
   $max = [0, 0, 0];
 
-  // Read the file line by line using fgets()
-  while (($line = fgets($file)) !== false) {
-    $cube = explode(',', str_replace("\n", '', $line));
-    $cubes[] = $cube;
-    for ($i = 0; $i <= 2; $i++) {
-      if ($cube[$i] < $min[$i]) {
-        $min[$i] = $cube[$i];
-      }
-      if ($cube[$i] > $max[$i]) {
-        $max[$i] = $cube[$i];
-      }
+  foreach ($lines as $line) {
+    $cubes[$line] = true;
+    $cube = explode(',', $line);
+
+    foreach ($cube as $i => $value) {
+      $min[$i] = min($min[$i], $value - 1);
+      $max[$i] = max($max[$i], $value + 1);
     }
   }
 
-  fclose($file);
-
-  return ['cubes' => $cubes, 'min' => $min, 'max' => $max];
+  return [$cubes, $min, $max];
 }
 
 function part1($cubes)
 {
   $surfaceArea = 0;
 
-  foreach ($cubes as $cube) {
+  foreach ($cubes as $line => $_) {
+    $cube = explode(',', $line);
     $neighbors = build_neighbors($cube);
 
     foreach ($neighbors as $neighbor) {
-      if (!in_array($neighbor, $cubes)) {
+      $neighbor = implode(',', $neighbor);
+      if (!isset($cubes[$neighbor])) {
         $surfaceArea++;
       }
     }
@@ -65,18 +55,21 @@ function part2($lava_cubes, $min, $max)
   $water_cubes = [];
   $surfaceArea = 0;
 
+  // bfs
   while (!empty($q)) {
     $cube = array_shift($q);
-    if (in_array($cube, $water_cubes)) {
+    $line = implode(',', $cube);
+    if (isset($water_cubes[$line])) {
       continue;
     }
-    $water_cubes[] = $cube;
+    $water_cubes[$line] = true;
     $neighbors = build_neighbors($cube);
 
     foreach ($neighbors as $neighbor) {
       if (valid_cube($neighbor, $min, $max)) {
-        if (!in_array($neighbor, $lava_cubes)) {
-          array_push($q, $neighbor);
+        $nline = implode(',', $neighbor);
+        if (!isset($lava_cubes[$nline])) {
+          $q[] = $neighbor;
         } else {
           $surfaceArea++;
         }
@@ -89,9 +82,7 @@ function part2($lava_cubes, $min, $max)
 
 function build_neighbors($cube)
 {
-  $x = $cube[0];
-  $y = $cube[1];
-  $z = $cube[2];
+  [$x, $y, $z] = $cube;
 
   return [
     [$x, $y - 1, $z], // Up
@@ -105,11 +96,14 @@ function build_neighbors($cube)
 
 function valid_cube($cube, $min, $max)
 {
-  $valid = true;
-  for ($i = 0; $i <= 2; $i++) {
-    if ($cube[$i] < $min[$i] ||  $max[$i] < $cube[$i]) {
-      return false;
-    }
-  }
-  return true;
+  [$x, $y, $z] = $cube;
+  [$maxX, $maxY, $maxZ] = $max;
+  [$minX, $minY, $minZ] = $min;
+
+  return $x >= $minX &&
+    $x <= $maxX &&
+    $y >= $minY &&
+    $y <= $maxY &&
+    $z >= $minZ &&
+    $z <= $maxZ;
 }
